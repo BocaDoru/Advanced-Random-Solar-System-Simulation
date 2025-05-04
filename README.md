@@ -8,16 +8,12 @@
 * [Changes from Previous Project](#changes-from-previous-project)
 * [Key Features](#key-features)
 * [Procedural Solar System Generation](#procedural-solar-system-generation)
-    * [Star System Generation](#star-system-generation)
-    * [Planet Distribution](#planet-distribution)
+    * [Celestial Bodies Generation](#celestial-bodies-generation)
     * [Moon Generation](#moon-generation)
+    * [Ring Generation](#ring-generation)
 * [Efficiency Considerations](#efficiency-considerations)
     * [Collider-Based Gravity](#collider-based-gravity)
     * [Performance Optimization](#performance-optimization)
-* [Usage](#usage)
-    * [Generation Parameters](#generation-parameters)
-* [Technical Details](#technical-details)
-* [Author](#author)
 
 ## Related Project
 
@@ -64,6 +60,8 @@
   * **Min Distance:** the minimum distance between 2 planets.
   * **Satelit Location:** the distance interval where a satelite(moon or ring) can generate.
 
+* Each celestial body has a radius of $$\log_{100} m$$, where m is the mass of the planet.
+
 ### Celestial Bodies Generation
 
 * All celestial bodies have the same generation algorithm, the differences are made by the initial settings.
@@ -88,10 +86,10 @@
 
 * For a moon to generate the parent planet need to have a gravitational atraction that suports this, there is 3/5 chance to generate a moon if this condition is valid.
 * Each planet generate a new **Celestial Body Settings** for it's moons. Those settings are:
-  * N= a random value in the interval (1, $$\log_{100} m$$), where m is the mass of parent planet.
+  * N= a random value in the interval (1, $$\log_{100} m$$ ), where m is the mass of parent planet.
   * Name Lenght= 2.
-  * Reach Bounds= $$SatelitLocation*maxDistance$$, where *SatelitLocation* is from parent planet and *maxDistance* is the maximum distance where the orbit is stabile.
-  * Mass Bounds= (minMassBound/2,$$\log_{100} m$$), where minMassBound is the lower interval value of Mass Bounds for the parent planet.
+  * Reach Bounds= $$SatelitLocation*maxDistance$$ , where *SatelitLocation* is from parent planet and *maxDistance* is the maximum distance where the orbit is stabile.
+  * Mass Bounds= (minMassBound/2, $$\log_{100} m$$ ), where minMassBound is the lower interval value of Mass Bounds for the parent planet.
   * Speed Error= a random value from (0, 0.05).
   * Velocity Normal Vector= a random point on a unit sphere.
   * Plan Normal Vector= Velocity Normal Vector.
@@ -102,10 +100,10 @@
 
 * For a ring to generate the parent planet need to have a gravitational atraction that suports this and the mass to be larger than $$10^{15}$$, there is 2/5 chance to generate a ring if those condition are valid.
 * Each planet generate a new **Celestial Body Settings** for it's rings. Those settings are:
-  * N= a random value in the interval (1, $$\log_{10} m$$) and multiplied by 1000, where m is the mass of parent planet.
+  * N= a random value in the interval (1, $$\log_{10} m$$ ) and multiplied by 1000, where m is the mass of parent planet.
   * Name Lenght= 3.
   * Reach Bounds= $$SatelitLocation*maxDistance$$, where *SatelitLocation* is from parent planet and *maxDistance* is the maximum distance where the orbit is stabile.
-  * Mass Bounds= (minMassBound/3,$$\log_{1000} m$$), where minMassBound is the lower interval value of Mass Bounds for the parent planet.
+  * Mass Bounds= (minMassBound/3, $$\log_{1000} m$$ ), where minMassBound is the lower interval value of Mass Bounds for the parent planet.
   * Speed Error= a random value from (0, 0.07).
   * Velocity Normal Vector= a random point on a unit sphere.
   * Plan Normal Vector= Velocity Normal Vector.
@@ -119,12 +117,39 @@
 ### Collider-Based Gravity
 
 * For better performance i used a collider-based method that simulates **gravitational fields**.
-* The collider is a sphere with radius $$r=\sqrt{m*G*10^5}$$
+* The collider is a sphere with radius $$r=\sqrt{m * G * 10^5}$$. Every celestial body in this radius has a minimum gravitational atraction acceleration of $$10{-5}$$.
+* The position update is calculated as in [Solar System Simulation project](#https://github.com/BocaDoru/Solar-System-Simulation).
+* This approach boosts the performance from maximum **50** celestial bodies in a normal pair atraction calculation approach to aprox. **20000** celestial bodies.
+
 
 ### Performance Optimization
 
-* What other optimization techniques did you use?
-    * Object pooling?
-    * Spatial partitioning?
-    * Multi-threading?
-    * Other tricks?
+* In the normal algorithm the efficiency is $$O(n^2)$$. The collider method provides a efficiency based on the number of **large planets**.
+* The average simulation will have around $$\frac{1}{2} * NumberOfLargePlanets $$ planets with the mass greater than $$10^{15}$$(for an average wight distribution) that will make a gravitational field with a radius of aprox. 100000 Unity units(for a complet simulation with solar system structure stability, 100000 Unity units will be enough).
+* In this case those large planets, including the Sun, have a gravitational influence above every celestial object.
+* There is a chance of 2/5 that a planet generates rings and there are $$\frac{1}{2} * NumberOfLargePlanets $$ planets with the mass greater than $$10^{15}$$, so $$\frac{1}{10} * NumberOfLargePlanets $$ will have rings.
+* In average the number of celestial bodies in a ring structure is $$1000\frac{1+\log_{10} maxMass}{2}$$. Those celestial bodies have a small mass so they will not influence semnificative the performence.
+* There is a chance of 3/5 that a planet generates moons, so $$\frac{3}{5} * NumberOfPlanets $$ will have moons.
+* In average the number of moons is $$\frac{\log_{100} maxMass}{2}$$. Those moons will have a large enough mass that they will influence each others.
+* So in total the number of celestial bodies will be:
+
+  $$1+NumberOfPlanets+NumberOfAsteroids+\frac{1}{10} * NumberOfLargePlanets * 1000\frac{1+\log_{10} maxMass}{2} + \frac{3}{5} * NumberOfPlanets * \frac{\log_{100} maxMass}{2}$$
+  
+  $$1+\frac{13 \log_{100} maxMass}{10} * NumberOfPlanets + 50\log_{10} maxMass * NumberOfLargePlanets + NumberOfAsteroids$$
+
+* If we consider every planet as a large planet this expresion becomes:
+
+  $$1+\frac{1013 \log_{10} maxMass * NumberOfPlanets}{20} + NumberOfAsteroids$$
+
+* The number of calculation will be:
+
+  $$(1+NumberOfPlanets)*(1+\frac{1013 \log_{10} maxMass * NumberOfPlanets}{20} + NumberOfAsteroids)$$, if we consider all the planets as large.
+  
+  $$(1+NumberOfLargePlanets)*(1+(\frac{13 \log_{100} maxMass}{10} * NumberOfPlanets)^2 + 50\log_{10} maxMass * NumberOfLargePlanets + NumberOfAsteroids)$$
+
+* Here are some exemples:
+* 10 large planets, 0 asteroids, maximum mass of $$10^{17}$$: 8611 celestial bodies, $$8611^2=74149321$$ calculation for traditional algorithm, $$11 * 8611=94721$$ calculation for Collider-Based Gravity algorithm, ~782% improvement in performance.
+* 10 large planets, 1000 asteroids, maximum mass of $$10^{17}$$: 9611 celestial bodies, $$9611^2=92371321$$ calculation for traditional algorithm, $$11 * 9611=105721$$ calculation for Collider-Based Gravity algorithm, ~873% improvement in performance.
+* 10 large planets, 10 small planets, 1000 asteroids, maximum mass of $$10^{17}$$: 9722 celestial bodies, $$9722^2=94517284$$ calculation for traditional algorithm, $$11 * ((\frac{13 * 8.5 * 20}{10})^2 + 1000)=548251$$ calculation for Collider-Based Gravity algorithm, ~172% improvement in performance.
+
+* The performance is improved in the most of the cases for any solar system. A better performance is achieved for a small number of large celestial bodies.
