@@ -65,7 +65,7 @@ public class RandomPlanetsGenerator : MonoBehaviour
                     else if(cBody.m>=1e15f)
                     {
                         SettingsOfCelestialBody ringSettings = SettingsOfCelestialBody.CreateInstance<SettingsOfCelestialBody>();
-                        ringSettings.n = (int)Random.Range(1, Mathf.Log(cBody.m, 10)) * 100;
+                        ringSettings.n = (int)Random.Range(1, Mathf.Log(cBody.m, 10)) * 1000;
                         ringSettings.nameLenght = 3;
                         Vector3 vector3 = new Vector3(settings.satelitLocation.x, settings.satelitLocation.y, 0.01f) * maxDistanceToPlanet;
                         ringSettings.reachBounds = vector3;
