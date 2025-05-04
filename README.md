@@ -34,14 +34,14 @@
     * **Efficiency Focus:** Increased emphasis on performance to simulate a larger number of celestial bodies simultaneously.
     * **Simplified Visuals:** Planets are represented by simple spheres to improve performance.
 
-##   Key Features
+## Key Features
 
 * **Procedural Solar System Generation:** Generates complete solar systems with multiple planets, moons or rings and asteroid belts.
 * **Efficient Gravity Simulation:** Utilizes a collider-based approach to approximate gravitational influence, significantly reducing calculation overhead.
 * **Large Body Simulation:** Optimized to handle simulations with a large number of celestial bodies (up to 20000).
 * **Random Collisions:** Implements basic collision detection and handling between celestial bodies.
 
-##   Procedural Solar System Generation
+## Procedural Solar System Generation
 
 * This project focuses on the procedural generation of the *structure* of a solar system, rather than the visual appearance of individual planets.
 * The solar system structure can be manipulated by changing the **Celestial Body Settings** from unity editor. Those settings are:
@@ -59,8 +59,8 @@
   * **Reach Bounds:** the distance interval from the sun where this celestial body type can be found.
   * **Mass Bounds:** the mass interval in logarithmic scale.
   * **Speed Error:** the speed error, a small error result in more circular orbits and a bigger error result in a more elliptic orbit.
+  * **Velocity Normal Vector:** the *Up Vector* for the orbital velocity. Typicaly all the celestial bodies of a gravitational system orbits in the same direction.
   * **Plan Normal Vector:** the *Up Vector* for the orbital plan. Typicaly all the celestial bodies of a gravitational system orbits in the same aproximate plane.
-  * **Plan Normal Vector:** the *Up Vector* for the orbital velocity. Typicaly all the celestial bodies of a gravitational system orbits in the same direction.
   * **Min Distance:** the minimum distance between 2 planets.
   * **Satelit Location:** the distance interval where a satelite(moon or ring) can generate.
 
@@ -71,52 +71,60 @@
 * The smaller planets are distributed in the first half of **reach bounds**, and the bigger planets in the second half. Further noted with **(down, up)**.
 * A random point is selected form a **unit sphere**, is projected on the **orbital plane** and normalize to give the generated planet vector. This vector is scaled with a random value from (down, up) interval and translated to the parent planet position.
 * If another planet is in the minimum distance this process is repeated until a valid position is found or the maximum number of tries is reach.
-* The planet velocity is calculated as: $$\vec{v_0}=\vec{V_{pp}}+\sqrt{\frac{G M}{|p - P_p|}} e_{rr} ({\hat{(p-P_p)}}\times{v_n})$$.
+* The planet velocity is calculated as:
+  
+  $$\vec{v_0}=\vec{V_{pp}}+\sqrt{\frac{G M}{|\vec{p} - \vec{P_p}|}} e_{rr} ({\frac{\vec{p}-\vec{P_p}}{|\vec{p}-\vec{P_p}|}}\times{\vec{v_n}})$$
+  
+  * $$\vec{v_0}=$$ initial velocity vector.
+  * $$\vec{V_{pp}}=$$ parent planet velocity vector.
+  * $$G=$$ gravitational constant $$G=6.67428^{-11}$$.
+  * $$M=$$ parent plenet mass.
+  * $$\vec{p}=$$ position vector.
+  * $$\vec{P_p}=$$ parent planet position vector.
+  * $$e_{rr}=$$ a random value from speed error interval.
+  * $$\vec{v_n}=$$ velocity normal vector.
 
-###   Moon Generation
+### Moon Generation
 
-* Do you generate moons around planets?
-* If so, how do you determine:
-    * The number of moons per planet?
-    * The orbital distances of moons?
-    * The sizes/masses of moons?
+* For a moon to generate the parent planet need to have a gravitational atraction that suports this, there is 3/5 chance to generate a moon if this condition is valid.
+* Each planet generate a new **Celestial Body Settings** for it's moons. Those settings are:
+  * N= a random value in the interval (1, $$\log_{100} m$$), where m is the mass of parent planet.
+  * Name Lenght= 2.
+  * Reach Bounds= $$SatelitLocation*maxDistance$$, where *SatelitLocation* is from parent planet and *maxDistance* is the maximum distance where the orbit is stabile.
+  * Mass Bounds= (minMassBound/2,$$\log_{100} m$$), where minMassBound is the lower interval value of Mass Bounds for the parent planet.
+  * Speed Error= a random value from (0, 0.05).
+  * Velocity Normal Vector= a random point on a unit sphere.
+  * Plan Normal Vector= Velocity Normal Vector.
+  * Min Distance= NaN.
+  * Satelit Location= (0.1, 0.9).
 
-##   Efficiency Considerations
+### Ring Generation
 
-    This project prioritizes the efficient simulation of a large number of celestial bodies.
+* For a ring to generate the parent planet need to have a gravitational atraction that suports this and the mass to be larger than $$10^{15}$$, there is 2/5 chance to generate a ring if those condition are valid.
+* Each planet generate a new **Celestial Body Settings** for it's rings. Those settings are:
+  * N= a random value in the interval (1, $$\log_{10} m$$) and multiplied by 1000, where m is the mass of parent planet.
+  * Name Lenght= 3.
+  * Reach Bounds= $$SatelitLocation*maxDistance$$, where *SatelitLocation* is from parent planet and *maxDistance* is the maximum distance where the orbit is stabile.
+  * Mass Bounds= (minMassBound/3,$$\log_{1000} m$$), where minMassBound is the lower interval value of Mass Bounds for the parent planet.
+  * Speed Error= a random value from (0, 0.07).
+  * Velocity Normal Vector= a random point on a unit sphere.
+  * Plan Normal Vector= Velocity Normal Vector.
+  * Min Distance= NaN.
+  * Satelit Location= (0.1, 0.9).
 
-###   Collider-Based Gravity
+## Efficiency Considerations
 
-* Explain your collider-based approach.
-    * Instead of calculating the gravitational force between every pair of objects, you use colliders to represent gravitational fields.
-    * This significantly reduces the number of force calculations.
-* How does it work?
-* What are the trade-offs in terms of accuracy?
+* This project prioritizes the efficient simulation of a large number of celestial bodies.
 
-###   Performance Optimization
+### Collider-Based Gravity
+
+* For better performance i used a collider-based method that simulates **gravitational fields**.
+* The collider is a sphere with radius $$r=\sqrt{m*G*10^5}$$
+
+### Performance Optimization
 
 * What other optimization techniques did you use?
     * Object pooling?
     * Spatial partitioning?
     * Multi-threading?
     * Other tricks?
-
-##   Usage
-
-###   Generation Parameters
-
-* Explain the parameters that users can control to influence the generated solar systems.
-    * Number of planets
-    * Distribution of planet sizes
-    * Density of moons
-    * etc.
-
-##   Technical Details
-
-* **Physics Engine:** Briefly summarize the core physics principles (Newtonian gravity) and refer to the other project's README for more details.
-* **Random Number Generation:** Specify the random number generators you used and why.
-* **Data Structures:** Mention any specific data structures you used for efficiency (e.g., lists, arrays, trees).
-
-##   Author
-
-* Boca Ioan Doru
