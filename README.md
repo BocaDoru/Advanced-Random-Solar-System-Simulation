@@ -71,7 +71,7 @@
 * The smaller planets are distributed in the first half of **reach bounds**, and the bigger planets in the second half. Further noted with **(down, up)**.
 * A random point is selected form a **unit sphere**, is projected on the **orbital plane** and normalize to give the generated planet vector. This vector is scaled with a random value from (down, up) interval and translated to the parent planet position.
 * If another planet is in the minimum distance this process is repeated until a valid position is found or the maximum number of tries is reach.
-* The planet velocity is calculated as: $$\vec{v_0}=\vec{V_{pp}}+\sqrt{\frac{G M}{|p - P_p|} e_{rr} (\times{\hat{p-P_p}}{v_n})$$.
+* The planet velocity is calculated as: $$\vec{v_0}=\vec{V_{pp}}+\sqrt{\frac{G M}{|p - P_p|}} e_{rr} (\times{\hat{p-P_p}}{v_n})$$.
 
 ###   Moon Generation
 
