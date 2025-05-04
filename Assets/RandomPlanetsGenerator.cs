@@ -17,9 +17,6 @@ public class RandomPlanetsGenerator : MonoBehaviour
     public Efficiency efficiency;
     void Start()
     {
-        innerRockyPlanetsSettings.n = 5;
-        outerGasGiantsSettings.n = 5;
-        dwarfPlanetsSettings.n = 2;
         Sun.satelits = GenerateCelestialBodyGrup(Sun, innerRockyPlanetsSettings);
         Sun.satelits.AddRange(GenerateCelestialBodyGrup(Sun, outerGasGiantsSettings));
         Sun.satelits.AddRange(GenerateCelestialBodyGrup(Sun, dwarfPlanetsSettings));
