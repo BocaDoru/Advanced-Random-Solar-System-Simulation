@@ -12,8 +12,9 @@
     * [Moon Generation](#moon-generation)
     * [Ring Generation](#ring-generation)
 * [Efficiency Considerations](#efficiency-considerations)
-    * [Collider-Based Gravity](#collider-based-gravity)
-    * [Performance Optimization](#performance-optimization)
+    * [Why Collider-Based Gravity?](#why-collider-based-gravity)
+    * [How Collider-Based Gravity Works](#how-collider-based-gravity-works)
+    * [Performance Improvement Analysis](#performance-improvement-analysis)
 
 ## Related Project
 
@@ -114,42 +115,83 @@
 
 * This project prioritizes the efficient simulation of a large number of celestial bodies.
 
-### Collider-Based Gravity
+### Why Collider-Based Gravity?
 
-* For better performance i used a collider-based method that simulates **gravitational fields**.
-* The collider is a sphere with radius $$r=\sqrt{m * G * 10^5}$$. Every celestial body in this radius has a minimum gravitational atraction acceleration of $$10{-5}$$.
-* The position update is calculated as in [Solar System Simulation project](#https://github.com/BocaDoru/Solar-System-Simulation).
-* This approach boosts the performance from maximum **50** celestial bodies in a normal pair atraction calculation approach to aprox. **20000** celestial bodies.
+* In a traditional gravitational simulation, the gravitational force between every pair of celestial bodies must be calculated each frame. This results in a computational complexity of O(n²), where 'n' is the number of bodies. As the number of bodies increases, the number of calculations grows dramatically, quickly becoming computationally expensive and limiting the scale of the simulation.
+* To address this limitation, a collider-based method was implemented to approximate gravitational influence and reduce the number of force calculations, enabling the simulation of significantly larger solar systems.
 
+### How Collider-Based Gravity Works
 
-### Performance Optimization
+* Instead of calculating the gravitational force between every pair of objects, this method uses colliders to represent the region of space where a celestial body exerts a significant gravitational influence.
+* **Collider Radius:** Each celestial body is assigned a spherical collider. The radius (r) of this collider is calculated based on the body's mass (m) and the gravitational constant (G):
 
-* In the normal algorithm the efficiency is $$O(n^2)$$. The collider method provides a efficiency based on the number of **large planets**.
-* The average simulation will have around $$\frac{1}{2} * NumberOfLargePlanets $$ planets with the mass greater than $$10^{15}$$(for an average wight distribution) that will make a gravitational field with a radius of aprox. 100000 Unity units(for a complet simulation with solar system structure stability, 100000 Unity units will be enough).
-* In this case those large planets, including the Sun, have a gravitational influence above every celestial object.
-* There is a chance of 2/5 that a planet generates rings and there are $$\frac{1}{2} * NumberOfLargePlanets $$ planets with the mass greater than $$10^{15}$$, so $$\frac{1}{10} * NumberOfLargePlanets $$ will have rings.
-* In average the number of celestial bodies in a ring structure is $$1000\frac{1+\log_{10} maxMass}{2}$$. Those celestial bodies have a small mass so they will not influence semnificative the performence.
-* There is a chance of 3/5 that a planet generates moons, so $$\frac{3}{5} * NumberOfPlanets $$ will have moons.
-* In average the number of moons is $$\frac{\log_{100} maxMass}{2}$$. Those moons will have a large enough mass that they will influence each others.
-* So in total the number of celestial bodies will be:
+   $$r = \sqrt{m * G * 10^5}$$
 
-  $$1+NumberOfPlanets+NumberOfAsteroids+\frac{1}{10} * NumberOfLargePlanets * 1000\frac{1+\log_{10} maxMass}{2} + \frac{3}{5} * NumberOfPlanets * \frac{\log_{100} maxMass}{2}$$
+* **Gravitational Influence:** When a celestial body is within the collider of another body, it experiences a minimum gravitational acceleration. This avoids calculating the precise force for every distant object.
+* **Force Calculation:** The gravitational force is only precisely calculated between bodies that are within each other's colliders.
+* **Position Update:** The position and velocity of each celestial body are updated based on the net gravitational force acting upon it, as described in the "Solar System Simulation" project.
+
+### Performance Improvement Analysis
+
+* The traditional method has a computational complexity of O(n²), meaning the number of force calculations increases quadratically with the number of celestial bodies (n).
+* The collider-based method aims to reduce this complexity. Here's a simplified analysis:
   
-  $$1+\frac{13 \log_{100} maxMass}{10} * NumberOfPlanets + 50\log_{10} maxMass * NumberOfLargePlanets + NumberOfAsteroids$$
+1. **Simplified Model:**
+   * Assume there are 'n' celestial bodies.
+   * Assume 'k' of these bodies are "large" enough to have significant gravitational influence (and therefore large colliders).
+   * On average, assume each large body's collider contains 'c' other bodies.
+   * **Traditional Calculations:** $$\frac{n * (n - 1)}{2}$$ (approximately $$n^2$$)
+   * **Collider-Based Calculations:**
+   * Calculations between large bodies: $$\frac{k * (k - 1)}{2}$$
+   * Calculations between large and small bodies within colliders: $$k * c$$
+   * Total (Simplified): $$\frac{k * (k - 1)}{2}+k * c$$
+              
+2. **Average Case Estimation:**
+   * Let:
+      * $$n_{large}$$ = Number of large planets
+      * $$n_{small}$$ = Number of smaller celestial bodies (asteroids, etc.)
+      * $$n_{planets}$$ = Total number of planets
+      * $$max_{mass}$$ = Maximum mass of a celestial body
+      * Average number of moons per planet: $$avg_{moons} = \frac{log_{100}max_{mass}}{2}$$, and 3/5th of planets have moons.
+      * Approximate number of ring particles: $$n_{particles} = 1000 * \frac{1 + log_{10}max_{mass}}{2} * \frac{n_large}{10}` (assuming 1/10th of large planets have rings)
+      * Total number of celestial bodies(plus the star):
 
-* If we consider every planet as a large planet this expresion becomes:
+      $$n_{total} = 1 + n_{planets} + n_{small} + n_{particles} + \frac{3}{5} * n_{planets} * avg_{moons}$$
 
-  $$1+\frac{1013 \log_{10} maxMass * NumberOfPlanets}{20} + NumberOfAsteroids$$
+      * **Number of Calculations (Approximation):**
+         1.  **Large Body Interactions:** the number of interactions between large bodies O($$k^2$$).
+         2.  **Large Body - Small Body Interactions:** the number of interactions between large-small bodies O(k * n).
+         3.  **Small Body - Small Body Interactions:** the number of interactions between small-small bodies O(1).
 
-* The number of calculation will be:
+3. **Complexity Comparison:**
+   
+   * The traditional method has a complexity O($$n^2$$) and the Collider-Base method O($$(k^2+k) * n$$).
+   * If the number k is a small constant the complexity becomes O(n).
 
-  $$(1+NumberOfPlanets)*(1+\frac{1013 \log_{10} maxMass * NumberOfPlanets}{20} + NumberOfAsteroids)$$, if we consider all the planets as large.
-  
-  $$(1+NumberOfLargePlanets)*(1+(\frac{13 \log_{100} maxMass}{10} * NumberOfPlanets)^2 + 50\log_{10} maxMass * NumberOfLargePlanets + NumberOfAsteroids)$$
+4. **Examples with Numbers (for more examples go to [desmos calculator](#https://www.desmos.com/calculator/pkrc2ya3gt):**
 
-* Here are some exemples:
-* 10 large planets, 0 asteroids, maximum mass of $$10^{17}$$: 8611 celestial bodies, $$8611^2=74149321$$ calculation for traditional algorithm, $$11 * 8611=94721$$ calculation for Collider-Based Gravity algorithm, ~782% improvement in performance.
-* 10 large planets, 1000 asteroids, maximum mass of $$10^{17}$$: 9611 celestial bodies, $$9611^2=92371321$$ calculation for traditional algorithm, $$11 * 9611=105721$$ calculation for Collider-Based Gravity algorithm, ~873% improvement in performance.
-* 10 large planets, 10 small planets, 1000 asteroids, maximum mass of $$10^{17}$$: 9722 celestial bodies, $$9722^2=94517284$$ calculation for traditional algorithm, $$11 * ((\frac{13 * 8.5 * 20}{10})^2 + 1000)=548251$$ calculation for Collider-Based Gravity algorithm, ~172% improvement in performance.
+   * **Example 1:**
+      * 5 large planets, 0 asteroids, max_mass = 10^16
+      * Estimate $$n_{total}=4300
+      * Traditional Calculations: $$n_{total}^2=18490000$$
+      * Collider-Based Calculations: $$(n_{large}^2+n_{large}) * n_{total}=129000$$
+      * Performance Improvement: $$\frac{Traditional-Collider}{Traditional} * 100%=\frac{18490000-129000}{18490000} * 100%=99.30%$$      
+   * **Example 2:**
+      * 10 large planets, 1000 asteroids, max_mass = 10^17
+      * Estimate $$n_{total}=10000
+      * Traditional Calculations: $$n_{total}^2=10000^2=100000000$$
+      * Collider-Based Calculations: $$(n_{large}^2+n_{large}) * n_{total}=1100000$$
+      * Performance Improvement: $$\frac{Traditional-Collider}{Traditional} * 100%=\frac{100000000-1100000}{100000000} * 100%=98.90%$$     
+   * **Example 3:**
+      * 11 large planets, 10 small planets, 10000 asteroids, max_mass = 10^17
+      * Estimate $$n_{total}=20000
+      * Traditional Calculations: $$n_{total}^2=20000^2=400000000$$
+      * Collider-Based Calculations: $$(n_{large}^2+n_{large}) * n_{total}=2640000$$
+      * Performance Improvement: $$\frac{Traditional-Collider}{Traditional} * 100%=\frac{400000000-2640000}{400000000} * 100%=99.33%$$
 
-* The performance is improved in the most of the cases for any solar system. A better performance is achieved for a small number of large celestial bodies.
+5. **Limitations:**
+
+   * This method comes with some tread-offs:
+      * **Lower Accuracy:** the Collider-Based Method comes with some accuracy issues, the collider radius limits the interaction by ignoring far away objects, this can cause some issus for long time simulation.
+      * **Collider Interaction:** each collider uses some resources for detecting collision and for a very large number of objects this can affect negatively the simulation.
+      * **Simpler Systems:** for simpler or mostly large planets solar systems the over all complexity will also be O($$n^2$$). The performance is relevant in complex systems with relative small number of large planets and a very large number of small objects.
