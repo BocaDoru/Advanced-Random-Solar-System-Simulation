@@ -7,6 +7,7 @@
 * [Related Project](#related-project)
 * [Changes from Previous Project](#changes-from-previous-project)
 * [Key Features](#key-features)
+* [Controls](#controls)
 * [Procedural Solar System Generation](#procedural-solar-system-generation)
     * [Celestial Bodies Generation](#celestial-bodies-generation)
     * [Moon Generation](#moon-generation)
@@ -15,6 +16,8 @@
     * [Why Collider-Based Gravity?](#why-collider-based-gravity)
     * [How Collider-Based Gravity Works](#how-collider-based-gravity-works)
     * [Performance Improvement Analysis](#performance-improvement-analysis)
+* [Collision Detection Physics](#collision-detection-physics)
+* [Project Structure](#project-structure)
 
 ## Related Project
 
@@ -22,7 +25,7 @@
     * Basic physics calculations (Newton's law of gravitation)
     * Simulation controls and user interaction
     * Core classes for celestial object representation
-
+  
 ## Changes from Previous Project
 
 * The most significant changes in this project are:
@@ -37,6 +40,14 @@
 * **Efficient Gravity Simulation:** Utilizes a collider-based approach to approximate gravitational influence, significantly reducing calculation overhead.
 * **Large Body Simulation:** Optimized to handle simulations with a large number of celestial bodies (up to 20000).
 * **Random Collisions:** Implements basic collision detection and handling between celestial bodies.
+
+## Controls
+
+* **Back/Exit:** to exit the simulation or to go back to the Settings Menu press **Esc key**.
+* **Selection Menu:** to open the Selection Menu press **Space key**.
+* **Fullscreen:** to toggle fullscreen mode press **F1 key**.
+* **Frame Rate:** to toggle frame rate visibility press **F2 key**.
+* **Celestial Bodies Number:** to toggle celestial bodies number visibility press **F3 key**.
 
 ## Procedural Solar System Generation
 
@@ -153,7 +164,7 @@
       * $$n_{planets}$$ = Total number of planets
       * $$max_{mass}$$ = Maximum mass of a celestial body
       * Average number of moons per planet: $$avg_{moons} = \frac{log_{100}max_{mass}}{2}$$, and 3/5th of planets have moons.
-      * Approximate number of ring particles: $$n_{particles} = 1000 * \frac{1 + log_{10}max_{mass}}{2} * \frac{n_large}{10}` (assuming 1/10th of large planets have rings)
+      * Approximate number of ring particles: $$n_{particles} = 1000 * \frac{1 + log_{10}max_{mass}}{2} * \frac{n_{large}}{10}$$ (assuming 1/10th of large planets have rings)
       * Total number of celestial bodies(plus the star):
 
       $$n_{total} = 1 + n_{planets} + n_{small} + n_{particles} + \frac{3}{5} * n_{planets} * avg_{moons}$$
@@ -172,19 +183,19 @@
 
    * **Example 1:**
       * 5 large planets, 0 asteroids, max_mass = 10^16
-      * Estimate $$n_{total}=4300
+      * Estimate $$n_{total}=4300$$
       * Traditional Calculations: $$n_{total}^2=18490000$$
       * Collider-Based Calculations: $$(n_{large}^2+n_{large}) * n_{total}=129000$$
       * Performance Improvement: $$\frac{Traditional-Collider}{Traditional} * 100%=\frac{18490000-129000}{18490000} * 100%=99.30%$$      
    * **Example 2:**
       * 10 large planets, 1000 asteroids, max_mass = 10^17
-      * Estimate $$n_{total}=10000
+      * Estimate $$n_{total}=10000$$
       * Traditional Calculations: $$n_{total}^2=10000^2=100000000$$
       * Collider-Based Calculations: $$(n_{large}^2+n_{large}) * n_{total}=1100000$$
       * Performance Improvement: $$\frac{Traditional-Collider}{Traditional} * 100%=\frac{100000000-1100000}{100000000} * 100%=98.90%$$     
    * **Example 3:**
       * 11 large planets, 10 small planets, 10000 asteroids, max_mass = 10^17
-      * Estimate $$n_{total}=20000
+      * Estimate $$n_{total}=20000$$
       * Traditional Calculations: $$n_{total}^2=20000^2=400000000$$
       * Collider-Based Calculations: $$(n_{large}^2+n_{large}) * n_{total}=2640000$$
       * Performance Improvement: $$\frac{Traditional-Collider}{Traditional} * 100%=\frac{400000000-2640000}{400000000} * 100%=99.33%$$
@@ -195,3 +206,60 @@
       * **Lower Accuracy:** the Collider-Based Method comes with some accuracy issues, the collider radius limits the interaction by ignoring far away objects, this can cause some issus for long time simulation.
       * **Collider Interaction:** each collider uses some resources for detecting collision and for a very large number of objects this can affect negatively the simulation.
       * **Simpler Systems:** for simpler or mostly large planets solar systems the over all complexity will also be O($$n^2$$). The performance is relevant in complex systems with relative small number of large planets and a very large number of small objects.
+
+## Collision Detection Physics
+
+* There are 2 types of collision: **Plastic** and **Elastic** colisions.
+* A plastic collision happens between 2 small celestial bodies or a larger and a smaller celestial bodies. This collison will result in the union of those 2 celestial bodies. Those are the caracteristic equations for a plastic collision:
+  
+     $$m_R=m_1+m_2$$
+  
+     $$\vec{v_R}=\frac{\vec{v_1} * m_1 + \vec{v_2} * m_2}{m_R}$$
+
+  * Where:
+    * $$m_1, m_2$$ are the celestial bodies masses.
+    * $$\vec{v_1}, \vec{v_2}$$ are the celestial bodies velocity.
+    * $$m_R$$ is the result mass after collision.
+    * $$\vec{v_R}$$ is the result velocity after collision.
+   
+* An elastic collision happens between 2 large celestial bodies. This collision will result in the fragmentation of those bodies. Those fragmets will continue their deplasation in the general direction of the collision. Those are the caracteristic equations for an elastic colliesion:
+
+     $$m_R=m_1+m_2$$
+
+     $$E_{cm}=\frac{m_1*|\vec{v_1}|^2+(m_2*|\vec{v_2}|^2}{2}$$
+
+     $$n_f=\log_{100}E_{cm}$$
+
+     $$\vec{c}=\vec{p_1}-\vec{p_2}$$
+  
+     $$\vec{d}=\frac{\frac{\vec{E{cm}}}{|\vec{E{cm}|}}+\vec{c}}{|\frac{\vec{E{cm}}}{|\vec{E{cm}}|}+\vec{c}|}$$
+
+     $$d_v=\log_{1000}E_{cm}$$
+
+  * Where:
+    * $$E_{cm}$$ is the kinetic energy magnitude.
+    * $$n_f$$ is the number of resulting fragments.
+    * $$\vec{p_1}$$ is the center of first celestial body.
+    * $$\vec{p_2}$$ is the contact point between those bodies.
+    * $$\vec{c}$$ is the contact vector.
+    * $$\vec{d}$$ is the direction of the resulting fragments.
+    * $$d_v$$ is the dispersion value.
+
+  * Each new fragmet will generate with those initial values:
+    * A new initial position and velocity vector based on the collision center, it's direction, dispersion value and kinetic energy.
+    * A random mass. The sum of all fragments mass will be equal to $$m_R$$.
+    * A new speed value calculated as:
+  
+      $$v=\sqrt{\frac{2 * E{cm}}{m}}$$.
+
+## Project Structure
+
+* `InputManager.cs`: Handles user inputs.
+* `MoveCamera.cs`: Handles camera movements.
+* `Planet.cs`: Handles celestial objects physics.
+* `PlanetAtraction.cs`: Handles celestial bodies gravitational atraction. Contains the Collision-Based Method.
+* `PlanetInteraction.cs`: Handles celestial bodies physics collisions.
+* `RandomPlanetsGenerator.cs`: Handles solar system generation.
+* `SelectCelestialBody.cs`: Toggles celestial body selection.
+* `SettingsOfCelestialBody.cs`: ScriptableObject used to store celestial body settings
+* `SwitchCelestialBody.cs`: Handles Selection Menu generation when the selected body switches.
